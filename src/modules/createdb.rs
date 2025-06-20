@@ -100,10 +100,16 @@ pub fn run(args: &Args, bin: &var::BinaryPaths) -> Result<(), Box<dyn std::error
             // replace all whitespace characters with underscore
             let key = key.replace(|c: char| need_replacement(c), "_");
 
-            // hash sequence to avoid name collision
-            let mut hash = format!("{:x}", md5::compute(value.clone()));
-            hash.truncate(10);
+            // hash sequence plus header to create a unique identifier
+            let mut hash = format!("{:x}", md5::compute(format!("{}{}{}", species, key, value)));
+            hash.truncate(16);
             let hashed_name = format!("unicore_{}", hash);
+
+            if fasta_data.contains_key(&hashed_name) {
+                msg::println_message(&format!("Hash collision detected: {}:{}", species, key), 2);
+                continue;
+            }
+
             fasta_data.insert(hashed_name.clone(), value);
             writeln!(mapping_writer, "{}\t{}\t{}", hashed_name, species, key)?;
         }
